@@ -1,30 +1,24 @@
+import com.expediagroup.graphql.SchemaGeneratorConfig
+import com.expediagroup.graphql.TopLevelObject
+import com.expediagroup.graphql.toSchema
 import com.fasterxml.jackson.databind.ObjectMapper
-import io.undertow.Handlers
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import graphql.GraphQL
 import io.undertow.Undertow
-import io.undertow.UndertowOptions
-import io.undertow.server.RoutingHandler
-import io.undertow.util.Headers
-import routes.ROUTE_CONFIG
+import routing.router
+import services.GreetingService
 
 object HelloWorldServer {
-    private val objectMapper = ObjectMapper()
+    private val objectMapper = ObjectMapper().registerModule(KotlinModule())
+    private val graphql: GraphQL
 
-    private fun router(objectMapper: ObjectMapper): RoutingHandler {
-        val router = Handlers.routing()
+    init {
+        val config = SchemaGeneratorConfig(supportedPackages = listOf("dto"))
+        val queries = listOf(TopLevelObject(GreetingService()))
+        val mutations: List<TopLevelObject> = emptyList()
+        val schema = toSchema(config, queries, mutations)
 
-        ROUTE_CONFIG.entries.forEach { verb ->
-            verb.value.entries.forEach { route ->
-                router.add(verb.key, route.key, route.value(objectMapper))
-            }
-
-            router.setFallbackHandler { exchange ->
-                exchange.responseHeaders.put(Headers.CONTENT_TYPE, "text/plain;charset=utf-8")
-                exchange.statusCode = 404
-                exchange.responseSender.send("無")
-            }
-        }
-
-        return router
+        graphql = GraphQL.newGraphQL(schema).build()
     }
 
     @JvmStatic
@@ -35,9 +29,11 @@ object HelloWorldServer {
             .setPort(8080)
         val server = Undertow.builder()
             .addListener(listener)
-            .setHandler(router(objectMapper = objectMapper))
+            .setHandler(router(objectMapper = objectMapper, graphql = graphql))
             .build()
+
         server.start()
+
         println("Started server at http://localhost:8080  Hit ^C to stop")
     }
 }

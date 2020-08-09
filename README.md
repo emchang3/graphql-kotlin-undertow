@@ -18,4 +18,34 @@ Run:
 
 To debug, attach debugger to port 5000.
 
-See the server response at: http://localhost:8080/api/greeting
+### Query
+
+```graphql
+query GreetingQuery {
+  greeting {
+    message
+  }
+}
+```
+
+```shell script
+curl "http://localhost:8080/graphql" \
+  -X POST \
+  -d "{\"operationName\":\"GreetingQuery\",\"query\":\"query GreetingQuery{greeting{message}}\"}" \
+  -H "Content-Type: application/json" 
+```
+
+### Response
+
+```json
+{
+  "errors": [],
+  "data": {
+    "greeting": {
+      "message": "你好，世界！"
+    }
+  },
+  "extensions": null,
+  "dataPresent": true
+}
+```
